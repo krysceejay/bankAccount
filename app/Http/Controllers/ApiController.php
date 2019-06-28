@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Validator;
 use App\User;
 use App\Account;
+use Carbon\Carbon;
 
 class ApiController extends Controller
 {
@@ -29,7 +30,7 @@ class ApiController extends Controller
     }
 
     //deposit
-    public function deposit(Request $request, $userid)
+    public function deposit(Request $request, $userId)
     {
       $validator = Validator::make($request->all(), [
         'amount' => 'required|integer'
@@ -37,6 +38,20 @@ class ApiController extends Controller
       ]);
 
       // Throw error if validation fails
+
+      $totalDepositToday = 0;
+      $todayDeposits = Account::where('user_id', $userId)->where('account_action', 1)->whereDate('created_at', Carbon::today())->get();
+      foreach ($todayDeposits as $dp) {
+        $totalDepositToday += $dp->amount;
+      }
+
+      $depositPlusAmount = $totalDepositToday + $request->input('amount');
+
+      if($depositPlusAmount >= 150000){
+        return response()->json(['error' => 'You cannot exceed your maximum deposit of USD150000 for today', 'status code' => 400], 400);
+      }
+
+
     if ($validator->fails()) {
       return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
     }
@@ -47,7 +62,7 @@ class ApiController extends Controller
 
     // Add deposit
     $addDeposit = Account::create([
-      'user_id' => $userid,
+      'user_id' => $userId,
       'amount' => $request->input('amount'),
       'account_action' => 1
 
