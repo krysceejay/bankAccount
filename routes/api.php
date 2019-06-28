@@ -17,4 +17,5 @@ use Illuminate\Http\Request;
 //     return $request->user();
 // });
 
-Route::get('balance/{uid}','ApiController@accountBalance');
+Route::get('balance/{userid}','ApiController@accountBalance');
+Route::post('deposit/{userid}','ApiController@deposit');
