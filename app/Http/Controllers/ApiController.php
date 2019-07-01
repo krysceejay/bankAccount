@@ -113,6 +113,14 @@ class ApiController extends Controller
         $totalWithdrawalToday = 0;
         $todayWithdrawal = Account::where('user_id', $userId)->where('account_action', 0)->whereDate('created_at', Carbon::today())->get();
 
+        //Withdrawal Frequecy
+        $withdrawalFrequency = $todayWithdrawal->count();
+
+        if($withdrawalFrequency >= 3){
+          return response()->json(['error' => 'You cannot exceed your maximum withdrawal frequency of 3 transactions per day', 'status code' => 400], 400);
+
+        }
+
 
         foreach ($todayWithdrawal as $withd) {
           $totalWithdrawalToday += $withd->amount;
