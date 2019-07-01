@@ -125,6 +125,11 @@ class ApiController extends Controller
           return response()->json(['error' => 'You cannot exceed your maximum withdrawal of USD50000 for today', 'status code' => 400], 400);
         }
 
+        //Maximum withdrawal per transaction
+      if($request->input('amount') > 20000){
+        return response()->json(['error' => 'Withdrawal should not exceed 20000 per transaction', 'status code' => 400], 400);
+      }
+
         // Add withdrawal
         $addWithdrawal = Account::create([
           'user_id' => $userId,
