@@ -15,14 +15,22 @@ class ApiController extends Controller
     public function accountBalance($userId)
     {
       $totalDeposit = 0;
+      $totalWithdrawal = 0;
       $deposits = Account::where('user_id', $userId)->where('account_action', 1)->get();
+
+      $withdrawal = Account::where('user_id', $userId)->where('account_action', 0)->get();
 
       foreach ($deposits as $dp) {
         $totalDeposit += $dp->amount;
       }
 
-      if($totalDeposit){
-        return response()->json(['status' => 'success', 'status code' => 200,'data' => 'USD'.$totalDeposit], 200);
+      foreach ($withdrawal as $withd) {
+        $totalWithdrawal += $withd->amount;
+      }
+      $totalBalance = $totalDeposit - $totalWithdrawal;
+
+      if($totalBalance){
+        return response()->json(['status' => 'success', 'status code' => 200,'data' => 'USD'.$totalBalance], 200);
       }else{
         return response()->json(['status' => 'error', 'message' => 'An error occurred', 'status code' => 500], 500);
       }
@@ -81,9 +89,32 @@ class ApiController extends Controller
 
     }
 
-    // public function withdrawal(Request $request, $userId)
-    // {
-    //
-    // }
+    public function withdrawal(Request $request, $userId)
+    {
+        $validator = Validator::make($request->all(), [
+          'amount' => 'required|integer'
+
+        ]);
+
+        // Throw error if validation fails
+        if ($validator->fails()) {
+          return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
+        }
+
+        // Add deposit
+        $addWithdrawal = Account::create([
+          'user_id' => $userId,
+          'amount' => $request->input('amount'),
+          'account_action' => 0
+
+        ]);
+            if ($addWithdrawal) {
+              return response()->json(['status' => 'success','status code' => 200,'message' => 'Amount withdrawn successfully.'], 200);
+            } else {
+              // Otherwise, send failure message
+              return response()->json(['status' => 'error','message' => 'An error occurred', 'status code' => 500], 500);
+            }
+
+    }
 
 }

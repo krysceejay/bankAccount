@@ -19,3 +19,4 @@ use Illuminate\Http\Request;
 
 Route::get('balance/{userid}','ApiController@accountBalance');
 Route::post('deposit/{userid}','ApiController@deposit');
+Route::post('withdrawal/{userid}','ApiController@withdrawal');
