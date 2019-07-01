@@ -38,9 +38,19 @@ class ApiController extends Controller
       ]);
 
       // Throw error if validation fails
+      if ($validator->fails()) {
+        return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
+      }
 
       $totalDepositToday = 0;
       $todayDeposits = Account::where('user_id', $userId)->where('account_action', 1)->whereDate('created_at', Carbon::today())->get();
+      $depositFrequency = $todayDeposits->count();
+
+      if($depositFrequency >= 4){
+        return response()->json(['error' => 'You cannot exceed your maximum deposit frequency of 4 transactions per day', 'status code' => 400], 400);
+
+      }
+
       foreach ($todayDeposits as $dp) {
         $totalDepositToday += $dp->amount;
       }
@@ -50,11 +60,6 @@ class ApiController extends Controller
       if($depositPlusAmount >= 150000){
         return response()->json(['error' => 'You cannot exceed your maximum deposit of USD150000 for today', 'status code' => 400], 400);
       }
-
-
-    if ($validator->fails()) {
-      return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
-    }
 
     if($request->input('amount') > 40000){
       return response()->json(['error' => 'deposit should not exceed 40000 per transaction', 'status code' => 400], 400);
@@ -75,5 +80,10 @@ class ApiController extends Controller
         }
 
     }
+
+    // public function withdrawal(Request $request, $userId)
+    // {
+    //
+    // }
 
 }
