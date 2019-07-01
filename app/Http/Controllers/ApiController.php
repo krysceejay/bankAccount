@@ -16,8 +16,11 @@ class ApiController extends Controller
     {
       $totalDeposit = 0;
       $totalWithdrawal = 0;
+
+      //get user deposit
       $deposits = Account::where('user_id', $userId)->where('account_action', 1)->get();
 
+      //get user withdrawal
       $withdrawal = Account::where('user_id', $userId)->where('account_action', 0)->get();
 
       foreach ($deposits as $dp) {
@@ -27,6 +30,8 @@ class ApiController extends Controller
       foreach ($withdrawal as $withd) {
         $totalWithdrawal += $withd->amount;
       }
+
+      //total balance
       $totalBalance = $totalDeposit - $totalWithdrawal;
 
       if($totalBalance){
@@ -52,6 +57,8 @@ class ApiController extends Controller
 
       $totalDepositToday = 0;
       $todayDeposits = Account::where('user_id', $userId)->where('account_action', 1)->whereDate('created_at', Carbon::today())->get();
+
+      //deposit Frequecy
       $depositFrequency = $todayDeposits->count();
 
       if($depositFrequency >= 4){
@@ -65,10 +72,12 @@ class ApiController extends Controller
 
       $depositPlusAmount = $totalDepositToday + $request->input('amount');
 
+        //Maximum deposit for a day
       if($depositPlusAmount >= 150000){
         return response()->json(['error' => 'You cannot exceed your maximum deposit of USD150000 for today', 'status code' => 400], 400);
       }
 
+      //Maximum deposit per transaction
     if($request->input('amount') > 40000){
       return response()->json(['error' => 'deposit should not exceed 40000 per transaction', 'status code' => 400], 400);
     }
@@ -101,7 +110,22 @@ class ApiController extends Controller
           return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
         }
 
-        // Add deposit
+        $totalWithdrawalToday = 0;
+        $todayWithdrawal = Account::where('user_id', $userId)->where('account_action', 0)->whereDate('created_at', Carbon::today())->get();
+
+
+        foreach ($todayWithdrawal as $withd) {
+          $totalWithdrawalToday += $withd->amount;
+        }
+
+        $withdrawalPlusAmount = $totalWithdrawalToday + $request->input('amount');
+
+          //Maximum withdrawal for a day
+        if($withdrawalPlusAmount >= 50000){
+          return response()->json(['error' => 'You cannot exceed your maximum withdrawal of USD50000 for today', 'status code' => 400], 400);
+        }
+
+        // Add withdrawal
         $addWithdrawal = Account::create([
           'user_id' => $userId,
           'amount' => $request->input('amount'),
