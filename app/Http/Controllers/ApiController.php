@@ -14,31 +14,42 @@ class ApiController extends Controller
     //get account balance for a user
     public function accountBalance($userId)
     {
-      $totalDeposit = 0;
-      $totalWithdrawal = 0;
+      //total balance
+      $totalBalance = $this->getDeposit($userId) - $this->getWithdrawal($userId);
 
+      if($totalBalance == 0 || !empty($totalBalance)){
+        return response()->json(['status' => 'success', 'status code' => 200,'data' => 'USD'.$totalBalance], 200);
+      }else{
+        return response()->json(['status' => 'error', 'message' => 'An error occurred', 'status code' => 500], 500);
+      }
+
+    }
+
+    public function getDeposit($userId){
       //get user deposit
       $deposits = Account::where('user_id', $userId)->where('account_action', 1)->get();
 
-      //get user withdrawal
-      $withdrawal = Account::where('user_id', $userId)->where('account_action', 0)->get();
+      $totalDeposit = 0;
 
       foreach ($deposits as $dp) {
         $totalDeposit += $dp->amount;
       }
 
+      return $totalDeposit;
+
+    }
+
+    public function getWithdrawal($userId){
+      //get user withdrawal
+      $withdrawal = Account::where('user_id', $userId)->where('account_action', 0)->get();
+
+      $totalWithdrawal = 0;
+
       foreach ($withdrawal as $withd) {
         $totalWithdrawal += $withd->amount;
       }
 
-      //total balance
-      $totalBalance = $totalDeposit - $totalWithdrawal;
-
-      if($totalBalance){
-        return response()->json(['status' => 'success', 'status code' => 200,'data' => 'USD'.$totalBalance], 200);
-      }else{
-        return response()->json(['status' => 'error', 'message' => 'An error occurred', 'status code' => 500], 500);
-      }
+      return $totalWithdrawal;
 
     }
 
@@ -55,6 +66,8 @@ class ApiController extends Controller
         return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
       }
 
+      $amount = $request->input('amount');
+
       $totalDepositToday = 0;
       $todayDeposits = Account::where('user_id', $userId)->where('account_action', 1)->whereDate('created_at', Carbon::today())->get();
 
@@ -70,7 +83,7 @@ class ApiController extends Controller
         $totalDepositToday += $dp->amount;
       }
 
-      $depositPlusAmount = $totalDepositToday + $request->input('amount');
+      $depositPlusAmount = $totalDepositToday + $amount;
 
         //Maximum deposit for a day
       if($depositPlusAmount >= 150000){
@@ -85,7 +98,7 @@ class ApiController extends Controller
     // Add deposit
     $addDeposit = Account::create([
       'user_id' => $userId,
-      'amount' => $request->input('amount'),
+      'amount' => $amount,
       'account_action' => 1
 
     ]);
@@ -104,10 +117,19 @@ class ApiController extends Controller
           'amount' => 'required|integer'
 
         ]);
-
         // Throw error if validation fails
         if ($validator->fails()) {
           return response()->json(['error' => $validator->errors(), 'status code' => 400], 400);
+        }
+
+        $amount = $request->input('amount');
+
+        //total balance
+        $totalBalance = $this->getDeposit($userId) - $this->getWithdrawal($userId);
+
+        if($amount > $totalBalance){
+          return response()->json(['error' => 'You have insufficient fund', 'status code' => 400], 400);
+
         }
 
         $totalWithdrawalToday = 0;
@@ -126,7 +148,7 @@ class ApiController extends Controller
           $totalWithdrawalToday += $withd->amount;
         }
 
-        $withdrawalPlusAmount = $totalWithdrawalToday + $request->input('amount');
+        $withdrawalPlusAmount = $totalWithdrawalToday + $amount;
 
           //Maximum withdrawal for a day
         if($withdrawalPlusAmount >= 50000){
@@ -141,7 +163,7 @@ class ApiController extends Controller
         // Add withdrawal
         $addWithdrawal = Account::create([
           'user_id' => $userId,
-          'amount' => $request->input('amount'),
+          'amount' => $amount,
           'account_action' => 0
 
         ]);
